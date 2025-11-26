@@ -1,0 +1,35 @@
+<svg width="200" height="200" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <title>BhojanSetu Solid Logo</title>
+
+    <!-- Background Circle - Represents the cycle/community --><circle cx="50" cy="50" r="48" fill="#F3F4F6"/> 
+
+    <!-- Abstract Food/Leaf Shape (Bhojan) - Green --><path d="M50 10 C35 10, 20 25, 20 40 C20 60, 35 70, 50 80 C65 70, 80 60, 80 40 C80 25, 65 10, 50 10 Z" 
+          fill="#10B981" 
+          stroke="#059669" 
+          stroke-width="2"
+          transform="translate(0, -5)">
+        <animateTransform attributeName="transform" type="translate" from="0 -5" to="0 0" dur="2s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.5;1" values="0 -5;0 5;0 -5"/>
+    </path>
+
+    <!-- Connecting Arc/Bridge (Setu) - Orange --><path d="M30 40 Q50 25, 70 40" 
+          stroke="#F97316" 
+          stroke-width="6" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"
+          fill="none">
+        <animate attributeName="stroke-dasharray" dur="3s" repeatCount="indefinite" keyTimes="0;0.5;1" values="0 100;100 0;0 100" />
+    </path>
+
+    <!-- Hand/Supporting element - Blue --><path d="M40 85 C40 90, 45 93, 50 93 C55 93, 60 90, 60 85 L50 75 Z" 
+          fill="#3B82F6"
+          stroke="#2563EB"
+          stroke-width="1.5"
+          transform="translate(0, 5)">
+        <animateTransform attributeName="transform" type="translate" from="0 5" to="0 -5" dur="2s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.5;1" values="0 5;0 -5;0 5"/>
+    </path>
+
+    <!-- Small highlight on food shape --><path d="M50 15 L55 20 L50 25 L45 20 Z" fill="white" opacity="0.1" transform="translate(0, -5)">
+         <animateTransform attributeName="transform" type="translate" from="0 -5" to="0 0" dur="2s" repeatCount="indefinite" fill="freeze" keyTimes="0;0.5;1" values="0 -5;0 5;0 -5"/>
+    </path>
+
+</svg>
