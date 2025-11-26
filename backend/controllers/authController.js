@@ -5,25 +5,34 @@ import Donation from '../models/Donation.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer'; 
+import sgMail from '@sendgrid/mail';
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY); 
 
 // Nodemailer setup (Using SendGrid SMTP via API Key)
-const transporter = nodemailer.createTransport({
-    // FIX: SendGrid SMTP Host और Auth अपडेट किया गया
-    host: 'smtp.sendgrid.net', // SendGrid SMTP Server
-    port: 587, // Standard TLS port for SendGrid
-    secure: false, // Use STARTTLS on port 587
-    auth: {
-        user: 'apikey', // SendGrid के लिए यूजर हमेशा 'apikey' होता है
-        pass: process.env.SENDGRID_API_KEY // Render Env Var: SendGrid API Key
-    },
-    timeout: 10000, 
-    connectionTimeout: 10000, 
-    socketTimeout: 10000,
-    logger: true, 
-    debug: true
+// const transporter = nodemailer.createTransport({
+//     // FIX: SendGrid SMTP Host और Auth अपडेट किया गया
+//     host: 'smtp.sendgrid.net', // SendGrid SMTP Server
+//     port: 587, // Standard TLS port for SendGrid
+//     secure: false, // Use STARTTLS on port 587
+//     auth: {
+//         user: 'apikey', // SendGrid के लिए यूजर हमेशा 'apikey' होता है
+//         pass: process.env.SENDGRID_API_KEY // Render Env Var: SendGrid API Key
+//     },
+//     timeout: 10000, 
+//     connectionTimeout: 10000, 
+//     socketTimeout: 10000,
+//     logger: true, 
+//     debug: true
+// });
+
+await sgMail.send({
+  to: user.email,                 // jisko OTP bhejna hai
+  from: process.env.EMAIL_USER,   // SendGrid me verified sender
+  subject: 'BhojanSetu OTP Verification',
+  html: `<p>Your OTP is <strong>${otp}</strong>. It is valid for 10 minutes.</p>`
 });
+
 
 // Helper function to generate and send OTP
 const sendOtpEmail = async (user) => {
