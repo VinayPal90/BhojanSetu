@@ -6,14 +6,15 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer'; 
 
-// Nodemailer setup (Optimized SMTP Configuration for Cloud Hosting - Port 587)
+// Nodemailer setup (Using SendGrid SMTP via API Key)
 const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587, // FIX: Port 587 (TLS)
-    secure: false, // FIX: Port 587 के लिए secure: false
+    // FIX: SendGrid SMTP Host और Auth अपडेट किया गया
+    host: 'smtp.sendgrid.net', // SendGrid SMTP Server
+    port: 587, // Standard TLS port for SendGrid
+    secure: false, // Use STARTTLS on port 587
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        user: 'apikey', // SendGrid के लिए यूजर हमेशा 'apikey' होता है
+        pass: process.env.SENDGRID_API_KEY // Render Env Var: SendGrid API Key
     },
     timeout: 10000, 
     connectionTimeout: 10000, 
@@ -31,18 +32,19 @@ const sendOtpEmail = async (user) => {
         await user.save();
 
         const mailOptions = {
-            from: process.env.EMAIL_USER,
+            // From Address के लिए EMAIL_USER का उपयोग जारी रखें
+            from: process.env.EMAIL_USER, 
             to: user.email,
             subject: 'BhojanSetu Email Verification OTP',
             html: `<h3>Your Verification OTP for BhojanSetu is:</h3><h1>${otp}</h1><p>This code is valid for 10 minutes.</p>`
         };
 
-        console.log(`Attempting to send OTP to ${user.email} via SMTP Port 587...`);
+        console.log(`Attempting to send OTP to ${user.email} via SendGrid SMTP...`);
         await transporter.sendMail(mailOptions);
         console.log(`OTP sent successfully to ${user.email}`);
         return true;
     } catch (error) {
-        console.error("OTP Send Error (Connection Failed):", error.message || error);
+        console.error("OTP Send Error (SendGrid Connection Failed):", error.message || error);
         user.verificationOtp = undefined;
         user.otpExpires = undefined;
         await user.save();
@@ -75,8 +77,7 @@ export const registerController = async (req, res) => {
         const emailSent = await sendOtpEmail(user);
 
         if (!emailSent) {
-            // Error message updated to reflect SMTP issue
-            return res.status(500).json({ success: false, message: 'Registration successful, but failed to send verification email (SMTP Error). Please try Resend OTP or contact support.' });
+            return res.status(500).json({ success: false, message: 'Registration successful, but failed to send verification email (SendGrid Error). Please ensure your API Key is correct and try Resend OTP.' });
         }
 
         res.status(201).json({
@@ -147,7 +148,7 @@ export const resendOtp = async (req, res) => {
         const emailSent = await sendOtpEmail(user);
 
         if (!emailSent) {
-            return res.status(500).json({ success: false, message: 'Failed to resend verification email (SMTP Error).' });
+            return res.status(500).json({ success: false, message: 'Failed to resend verification email (SendGrid Error).' });
         }
 
         res.status(200).json({ success: true, message: 'New OTP sent to your email.' });
@@ -178,7 +179,7 @@ export const loginController = async (req, res) => {
             const emailSent = await sendOtpEmail(user); 
             const emailStatusMessage = emailSent 
                 ? 'New OTP sent to your email.' 
-                : 'Failed to send OTP. Please check your credentials.';
+                : 'Failed to send OTP. Please check your API Key.';
 
             return res.status(401).json({ 
                 success: false, 
