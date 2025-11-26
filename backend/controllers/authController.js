@@ -1,22 +1,14 @@
 // backend/controllers/authController.js
 
 import User from '../models/User.js';
-import Donation from '../models/Donation.js'; 
+import Donation from '../models/Donation.js'; // Donation model import kiya
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import nodemailer from 'nodemailer';
+import nodemailer from 'nodemailer'; 
 
-// Nodemailer setup (Contact API se reuse kiya gaya)
-// const transporter = nodemailer.createTransport({
-//     service: 'gmail',
-//     auth: {
-//         user: process.env.EMAIL_USER,
-//         pass: process.env.EMAIL_PASS
-//     }
-// });
-
+// Nodemailer setup (Explicit SMTP Configuration with reduced timeout)
 const transporter = nodemailer.createTransport({
-    // FIX: 'service: gmail' ko explicit host aur secure: true se badla
+    // FIX: 'service: gmail' se explicit host aur secure: true par switch kiya
     host: 'smtp.gmail.com',
     port: 465, // Secure port
     secure: true, // Use SSL/TLS
@@ -24,15 +16,17 @@ const transporter = nodemailer.createTransport({
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
     },
-    timeout: 20000, 
+    timeout: 10000, // FIX: Timeout ko kam kiya
+    connectionTimeout: 10000, 
+    socketTimeout: 10000,
+    logger: true, // Debugging ke liye zaroori
+    debug: true
 });
 
 // Helper function to generate and send OTP
 const sendOtpEmail = async (user) => {
     try {
         const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit OTP
-
-        // OTP ko database mein save karein (10 minute mein expire)
         user.verificationOtp = otp;
         user.otpExpires = new Date(Date.now() + 10 * 60 * 1000); 
         await user.save();
@@ -48,7 +42,6 @@ const sendOtpEmail = async (user) => {
         return true;
     } catch (error) {
         console.error("OTP Send Error:", error);
-        // OTP related fields ko reset kar dein agar mail fail ho jaye
         user.verificationOtp = undefined;
         user.otpExpires = undefined;
         await user.save();
@@ -81,6 +74,7 @@ export const registerController = async (req, res) => {
         const emailSent = await sendOtpEmail(user);
 
         if (!emailSent) {
+            // Agar mail fail hua, toh 500 error ke saath message bhejo
             return res.status(500).json({ success: false, message: 'Registration successful, but failed to send verification email. Please click Resend OTP.' });
         }
 
@@ -116,7 +110,6 @@ export const verifyEmail = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' });
         }
 
-        // Verification Successful
         user.isVerified = true;
         user.verificationOtp = undefined;
         user.otpExpires = undefined;
