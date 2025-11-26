@@ -1,12 +1,14 @@
-// backend/server.js (Optimized CORS Configuration)
+// backend/server.js
 
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import helmet from 'helmet'; // Security Headers
-import { Server } from 'socket.io'; 
-import http from 'http'; 
+import helmet from 'helmet';
+import { Server } from 'socket.io'; // Socket.io server
+import http from 'http'; // HTTP module
 import connectDB from './config/db.js';
+
+// Routes Import
 import authRouter from './routes/authRoutes.js'; 
 import donationRoutes from './routes/donationRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
@@ -16,62 +18,75 @@ dotenv.config();
 
 const PORT = process.env.PORT || 8080;
 const app = express();
-const server = http.createServer(app);
+const server = http.createServer(app); // HTTP server create kiya
 
 // Database Connection
 connectDB();
 
-// ------------------- CORS Configuration -------------------
-const allowedOrigins = [
-    process.env.CLIENT_URL, 
+// Middlewares
+app.use(helmet());
+
+// --- FIX: Dynamic Allowed Origins (CORS Fail-Safe) ---
+const localOrigins = [
     "http://localhost:5173", 
     "http://localhost:3000"
 ];
 
-const corsOptions = {
+const allowedOrigins = [...localOrigins];
+
+// Production/Deployment Environment mein, CLIENT_URL (Render Env Var) ko add karein
+if (process.env.CLIENT_URL) {
+    allowedOrigins.push(process.env.CLIENT_URL);
+} 
+// --------------------------------------------------
+
+// FIX: CORS configuration ko robust kiya gaya
+app.use(cors({
+    // FIX: Origin ko ek function diya jo dynamic tarike se Render ya Localhost ko allow karega
     origin: (origin, callback) => {
-        // अगर origin allowed है या यह same origin request है (origin undefined)
+        // Agar request same origin se hai ya allowed list mein hai, to allow karein
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            callback(new Error(`Not allowed by CORS for origin: ${origin}`));
+            // Render ya Netlify ke dynamic URLs ko allow karne ke liye ek fail-safe check
+            if (origin.endsWith('.onrender.com') || origin.endsWith('.netlify.app')) {
+                 callback(null, true);
+            } else {
+                 // Agar origin allowed nahi hai, to error do
+                 console.log("Blocked by CORS:", origin); // Debugging ke liye log
+                 callback(new Error('Not allowed by CORS'));
+            }
         }
     },
     credentials: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    allowedHeaders: 'Content-Type,Authorization',
-    // Preflight (OPTIONS) रिक्वेस्ट के लिए status code को 204 की जगह 200 पर सेट करें
-    optionsSuccessStatus: 200 
-};
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], 
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+}));
 
-// Middlewares
-app.use(helmet()); 
-
-// CORS Middleware apply किया
-app.use(cors(corsOptions)); 
-
-// यह सुनिश्चित करने के लिए कि सभी routes के लिए OPTIONS request सही ढंग से handled हो
-// यह अक्सर 'Access-Control-Allow-Origin' missing error को 204 status code के साथ हल करता है।
-app.options('*', cors(corsOptions)); 
-
-
-app.use(express.json()); // JSON data को parse करने के लिए
+app.use(express.json());
 
 // ------------------- SOCKET.IO SETUP -------------------
 const io = new Server(server, {
     pingTimeout: 60000,
-    cors: corsOptions // Express और Socket.io के लिए एक ही config का उपयोग करें
+    cors: {
+        // Socket.io ke liye bhi same logic
+        origin: allowedOrigins, 
+        methods: ["GET", "POST"],
+        credentials: true,
+    },
 });
 
-// ... (Socket.io Connection Logic remains the same)
+// Socket.io Connection Logic
 io.on('connection', (socket) => {
     console.log(`Socket Connected: ${socket.id}`);
 
+    // Join Chat Room
     socket.on('join_chat_room', (donationId) => {
         socket.join(donationId);
         console.log(`User joined room: ${donationId}`);
     });
 
+    // New Message Handling
     socket.on('new_message', (newMessage) => {
         socket.to(newMessage.donation).emit('message_received', newMessage);
         console.log(`Message sent to room ${newMessage.donation}`);
@@ -87,17 +102,18 @@ io.on('connection', (socket) => {
 app.use('/api/v1/auth', authRouter); 
 app.use('/api/v1/donations', donationRoutes); 
 app.use('/api/v1/contact', contactRoutes); 
-app.use('/api/v1/messages', messageRoutes);
+app.use('/api/v1/messages', messageRoutes); 
 
 // Test Route
 app.get('/', (req, res) => {
     res.status(200).json({
         message: `BhojanSetu Backend is Running Smoothly on Port ${PORT}`,
-        environment: process.env.NODE_ENV
+        environment: process.env.NODE_ENV,
+        frontend_url: process.env.CLIENT_URL 
     });
 });
 
-// Server Listen
+// Server Listen (Note: 'server.listen' use karein, 'app.listen' nahi, taaki Socket.io chale)
 server.listen(PORT, () => {
     console.log(`Server started successfully on port ${PORT}`);
 });
