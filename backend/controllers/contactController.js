@@ -3,13 +3,27 @@
 import nodemailer from 'nodemailer';
 
 // Nodemailer transporter setup karein (Gmail ke liye)
+// const transporter = nodemailer.createTransport({
+//     service: 'gmail', // Agar aap koi aur service (jaise Outlook/SendGrid) use karte hain, to badal dein
+//     auth: {
+//         user: process.env.EMAIL_USER, // Aapki email ID (.env se)
+//         pass: process.env.EMAIL_PASS  // Aapka App Password (.env se)
+//     }
+// });
+
+
 const transporter = nodemailer.createTransport({
-    service: 'gmail', // Agar aap koi aur service (jaise Outlook/SendGrid) use karte hain, to badal dein
+    // FIX: 'service: gmail' ko explicit host aur secure: true se badla
+    host: 'smtp.gmail.com',
+    port: 465, // Secure port
+    secure: true, // Use SSL/TLS
     auth: {
-        user: process.env.EMAIL_USER, // Aapki email ID (.env se)
+        user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS  // Aapka App Password (.env se)
-    }
+    },
+    timeout: 20000, 
 });
+
 
 // @desc    Handle Contact Form Submission and send email
 // @route   POST /api/v1/contact
