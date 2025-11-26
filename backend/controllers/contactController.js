@@ -24,16 +24,19 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 // });
 
 
-const { email } = req.body;  // agar frontend se email aata hai
-// ya
-const email = req.user.email;  // agar user login hai to
+const bodyEmail = req.body.email;
+const userEmail = req.user?.email;
+
+// phir jo chahiye use karo, jaise:
+const emailToUse = bodyEmail || userEmail;
 
 await sgMail.send({
-  to: email,  // yaha pr sahi email use karo
+  to: emailToUse,
   from: process.env.EMAIL_USER,
   subject: 'BhojanSetu OTP Verification',
   html: `<p>Your OTP is <strong>${otp}</strong>. It is valid for 10 minutes.</p>`
 });
+
 
 
 
