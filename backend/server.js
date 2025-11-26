@@ -1,11 +1,11 @@
-// backend/server.js
+// backend/server.js (Update Code: Adding Socket.io)
 
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
-import { Server } from 'socket.io';
-import http from 'http';
+import { Server } from 'socket.io'; // <-- Socket.io Server Import
+import http from 'http'; // <-- HTTP module import
 import connectDB from './config/db.js';
 import authRouter from './routes/authRoutes.js'; 
 import donationRoutes from './routes/donationRoutes.js';
@@ -16,70 +16,74 @@ dotenv.config();
 
 const PORT = process.env.PORT || 8080;
 const app = express();
-const server = http.createServer(app);
+const server = http.createServer(app); // HTTP Server create kiya
 
-// ----------------------- CLIENT URLS -----------------------
-const CLIENT_URLS = [
-    process.env.CLIENT_URL,
-    "http://localhost:5173",
-    "http://localhost:3000"
-].filter(Boolean);
+// Database Connection
+connectDB();
 
-// --------------------- MIDDLEWARES -------------------------
+// Middlewares
 app.use(helmet());
+// FIX: CORS ko Socket.io ke liye bhi set karna padega
 
-// **SUPER IMPORTANT FIX**
 app.use(cors({
-    origin: (origin, callback) => {
-        if (!origin || CLIENT_URLS.includes(origin)) {
-            return callback(null, true);
-        }
-        return callback(new Error("Not allowed by CORS: " + origin));
-    },
+    // Yeh deployment par CLIENT_URL, aur local par localhost:5173 allow karega
+    origin: [process.env.CLIENT_URL, "http://localhost:5173", "http://localhost:3000"], 
     credentials: true,
-    methods: ['GET','POST','PUT','PATCH','DELETE'],
-    allowedHeaders: ['Content-Type','Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Sabhi methods allow kiye
+    allowedHeaders: ['Content-Type', 'Authorization'], // Headers allow kiye
 }));
 
 app.use(express.json());
 
-// ------------------- SOCKET.IO ------------------------------
+// ------------------- SOCKET.IO SETUP (Socket.io ke CORS ko bhi check karein) -------------------
 const io = new Server(server, {
+    pingTimeout: 60000,
     cors: {
-        origin: CLIENT_URLS,
+        origin: [process.env.CLIENT_URL, "http://localhost:5173", "http://localhost:3000"],
         methods: ["GET", "POST"],
         credentials: true,
     },
-    pingTimeout: 60000,
 });
 
+// Socket.io Connection Logic
 io.on('connection', (socket) => {
-    console.log("Socket Connected:", socket.id);
+    console.log(`Socket Connected: ${socket.id}`);
 
+    // Jab client join hota hai, hum use uski Donation ID (room) mein daal denge
+    // room name hoga: `donation-id`
     socket.on('join_chat_room', (donationId) => {
         socket.join(donationId);
+        console.log(`User joined room: ${donationId}`);
     });
 
+    // Jab koi naya message aata hai
     socket.on('new_message', (newMessage) => {
+        // Message ko uss room mein broadcast karo
         socket.to(newMessage.donation).emit('message_received', newMessage);
+        console.log(`Message sent to room ${newMessage.donation}`);
     });
 
     socket.on('disconnect', () => {
-        console.log("Socket Disconnected:", socket.id);
+        console.log(`Socket Disconnected: ${socket.id}`);
     });
 });
 
-// ----------------------- ROUTES -----------------------------
-app.use('/api/v1/auth', authRouter);
-app.use('/api/v1/donations', donationRoutes);
-app.use('/api/v1/contact', contactRoutes);
+
+// ------------------- API ROUTES -------------------
+app.use('/api/v1/auth', authRouter); 
+app.use('/api/v1/donations', donationRoutes); 
+app.use('/api/v1/contact', contactRoutes); 
 app.use('/api/v1/messages', messageRoutes);
 
+// Test Route
 app.get('/', (req, res) => {
-    res.json({ message: "Backend Running Successfully", env: process.env.NODE_ENV });
+    res.status(200).json({
+        message: `BhojanSetu Backend is Running Smoothly on Port ${PORT}`,
+        environment: process.env.NODE_ENV
+    });
 });
 
-// ------------------------ SERVER -----------------------------
+// Server ko 'server' object se listen karwao, na ki 'app' se
 server.listen(PORT, () => {
-    console.log(`Server started on port ${PORT}`);
+    console.log(`Server started successfully on port ${PORT}`);
 });
