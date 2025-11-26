@@ -10,7 +10,8 @@ import {
     resendOtp,
     getAllUsers, 
     updateUserVerificationStatus, 
-    getSystemStats 
+    getSystemStats,
+    sendContactEmail
 } from '../controllers/authController.js'; 
 import { protect, restrictTo } from '../middleware/authMiddleware.js'; 
 
@@ -22,7 +23,9 @@ router.post('/login', loginController);
 
 // EMAIL VERIFICATION ROUTES
 router.post('/verify-email', verifyEmail); 
-router.post('/resend-otp', resendOtp);     
+router.post('/resend-otp', resendOtp);  
+
+router.post('/contact', sendContactEmail);
 
 // PROFILE ROUTES
 router.get('/profile', protect, getUserProfile);
