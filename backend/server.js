@@ -24,10 +24,12 @@ connectDB();
 // Middlewares
 app.use(helmet());
 // FIX: CORS ko Socket.io ke liye bhi set karna padega
-const CLIENT_URLS = ["http://localhost:5173", "https://bhojansetu-3ncs.onrender.com"];
+// FIX: CORS configuration ko robust kiya gaya
 app.use(cors({
-    origin: CLIENT_URLS,
+    origin: [process.env.CLIENT_URL, "http://localhost:5173", "http://localhost:3000"], 
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Sabhi methods allow kiye
+    allowedHeaders: ['Content-Type', 'Authorization'], // Headers allow kiye
 }));
 app.use(express.json());
 
