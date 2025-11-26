@@ -4,19 +4,19 @@ import nodemailer from 'nodemailer';
 
 // Nodemailer transporter setup - Optimized for Cloud Deployment (Port 587 is preferred for TLS)
 const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587, // FIX 1: Port 465 (SSL) से Port 587 (TLS) पर स्विच किया
-    secure: false, // FIX 2: Port 587 के लिए secure: false (STARTTLS)
-    auth: {
-        user: process.env.EMAIL_USER, // आपकी email ID (.env से)
-        pass: process.env.EMAIL_PASS // आपका App Password (.env से)
-    },
-    // Timeout सेटिंग्स
-    timeout: 10000, 
-    connectionTimeout: 10000, 
-    socketTimeout: 10000,
-    logger: true, // Debugging के लिए Console में SMTP traffic दिखाता है
-    debug: true
+    // FIX: SendGrid SMTP Host और Auth अपडेट किया गया
+    host: 'smtp.sendgrid.net', // SendGrid SMTP Server
+    port: 587, // Standard TLS port for SendGrid
+    secure: false, // Use STARTTLS on port 587
+    auth: {
+        user: 'apikey', // SendGrid के लिए यूजर हमेशा 'apikey' होता है
+        pass: process.env.SENDGRID_API_KEY // Render Env Var: SendGrid API Key
+    },
+    timeout: 10000, 
+    connectionTimeout: 10000, 
+    socketTimeout: 10000,
+    logger: true, 
+    debug: true
 });
 
 
