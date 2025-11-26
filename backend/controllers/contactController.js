@@ -24,67 +24,96 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 // });
 
 
-const bodyEmail = req.body.email;
-const userEmail = req.user?.email;
-
-// phir jo chahiye use karo, jaise:
-const emailToUse = bodyEmail || userEmail;
-
-await sgMail.send({
-  to: emailToUse,
-  from: process.env.EMAIL_USER,
-  subject: 'BhojanSetu OTP Verification',
-  html: `<p>Your OTP is <strong>${otp}</strong>. It is valid for 10 minutes.</p>`
-});
-
-
-
-
-
-// @desc    Handle Contact Form Submission and send email
-// @route   POST /api/v1/contact
-// @access  Public
 export const sendContactEmail = async (req, res) => {
-    try {
-        const { name, email, message } = req.body;
+  try {
+    const { name, email, message } = req.body;
 
-        // Validation
-        if (!name || !email || !message) {
-            return res.status(400).json({ success: false, message: 'Please fill out all fields.' });
-        }
-
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: process.env.CONTACT_RECEIVER_EMAIL, // वह ईमेल ID जहाँ message प्राप्त होगा
-            subject: `New Contact Inquiry from BhojanSetu: ${name}`,
-            html: `
-                <h3>Contact Details</h3>
-                <p><strong>Name:</strong> ${name}</p>
-                <p><strong>Email:</strong> ${email}</p>
-                <hr>
-                <h3>Message</h3>
-                <p>${message}</p>
-            `,
-        };
-
-        console.log(`Attempting to send contact email from ${email} via SMTP Port 587...`);
-        // Email bhejein
-        await transporter.sendMail(mailOptions);
-        console.log(`Contact email sent successfully.`);
-
-        res.status(200).json({
-            success: true,
-            message: 'Your message has been sent successfully!'
-        });
-
-    } catch (error) {
-        // NODEMAILER FAILED: Log the error and send a 500 response
-        console.error('NODEMAILER FAILED - Connection Timeout/Error:', error.message);
-        res.status(500).json({
-            success: false,
-            // यह message क्लाइंट को भेजा गया था
-            message: 'Failed to send message. Please check SMTP credentials and network access.',
-            detail: error.message // Server log में सटीक error message दिखाएगा
-        });
+    if (!name || !email || !message) {
+      return res.status(400).json({ success: false, message: 'Please fill out all fields.' });
     }
+
+    const msg = {
+      to: process.env.CONTACT_RECEIVER_EMAIL,
+      from: process.env.EMAIL_USER,
+      subject: `New Contact Inquiry from BhojanSetu: ${name}`,
+      html: `
+          <h3>Contact Details</h3>
+          <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <hr>
+          <h3>Message</h3>
+          <p>${message}</p>
+      `
+    };
+
+    await sgMail.send(msg);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Your message has been sent successfully!'
+    });
+
+  } catch (error) {
+    console.error('SENDGRID ERROR:', error.response ? error.response.body : error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to send message. Please check SMTP credentials and network access.',
+      detail: error.response ? error.response.body : error.message
+    });
+  }
 };
+
+
+
+
+
+
+// // @desc    Handle Contact Form Submission and send email
+// // @route   POST /api/v1/contact
+// // @access  Public
+
+
+// export const sendContactEmail = async (req, res) => {
+//     try {
+//         const { name, email, message } = req.body;
+
+//         // Validation
+//         if (!name || !email || !message) {
+//             return res.status(400).json({ success: false, message: 'Please fill out all fields.' });
+//         }
+
+//         const mailOptions = {
+//             from: process.env.EMAIL_USER,
+//             to: process.env.CONTACT_RECEIVER_EMAIL, // वह ईमेल ID जहाँ message प्राप्त होगा
+//             subject: `New Contact Inquiry from BhojanSetu: ${name}`,
+//             html: `
+//                 <h3>Contact Details</h3>
+//                 <p><strong>Name:</strong> ${name}</p>
+//                 <p><strong>Email:</strong> ${email}</p>
+//                 <hr>
+//                 <h3>Message</h3>
+//                 <p>${message}</p>
+//             `,
+//         };
+
+//         console.log(`Attempting to send contact email from ${email} via SMTP Port 587...`);
+//         // Email bhejein
+//         await transporter.sendMail(mailOptions);
+//         console.log(`Contact email sent successfully.`);
+
+//         res.status(200).json({
+//             success: true,
+//             message: 'Your message has been sent successfully!'
+//         });
+
+//     } catch (error) {
+//         // NODEMAILER FAILED: Log the error and send a 500 response
+//         console.error('NODEMAILER FAILED - Connection Timeout/Error:', error.message);
+//         res.status(500).json({
+//             success: false,
+//             // यह message क्लाइंट को भेजा गया था
+//             message: 'Failed to send message. Please check SMTP credentials and network access.',
+//             detail: error.message // Server log में सटीक error message दिखाएगा
+//         });
+//     }
+// };
