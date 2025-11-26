@@ -1,11 +1,11 @@
-// backend/server.js (Update Code: Adding Socket.io)
+// backend/server.js (Updated Code with Robust CORS Configuration)
 
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
-import { Server } from 'socket.io'; // <-- Socket.io Server Import
-import http from 'http'; // <-- HTTP module import
+import { Server } from 'socket.io'; 
+import http from 'http'; 
 import connectDB from './config/db.js';
 import authRouter from './routes/authRoutes.js'; 
 import donationRoutes from './routes/donationRoutes.js';
@@ -21,44 +21,57 @@ const server = http.createServer(app); // HTTP Server create kiya
 // Database Connection
 connectDB();
 
+// ------------------- CORS Configuration -------------------
+const allowedOrigins = [
+    process.env.CLIENT_URL, 
+    "http://localhost:5173", 
+    "http://localhost:3000"
+];
+
+const corsOptions = {
+    // Dynamic origin checking
+    origin: (origin, callback) => {
+        // अगर origin allowedOrigins में है, या कोई origin नहीं है (जैसे same-origin requests/Postman), तो अनुमति दें
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            // console.log(`Blocked CORS request from origin: ${origin}`); // Debugging के लिए
+            callback(new Error('Not allowed by CORS'), false);
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    // Preflight requests के लिए status code 204 की जगह 200 सेट करें (कुछ environments में 204 से समस्या आती है)
+    optionsSuccessStatus: 200 
+};
+
 // Middlewares
 app.use(helmet());
-// FIX: CORS ko Socket.io ke liye bhi set karna padega
+app.use(cors(corsOptions)); // CORS Middleware apply किया
 
-app.use(cors({
-    // Yeh deployment par CLIENT_URL, aur local par localhost:5173 allow karega
-    origin: [process.env.CLIENT_URL, "http://localhost:5173", "http://localhost:3000"], 
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Sabhi methods allow kiye
-    allowedHeaders: ['Content-Type', 'Authorization'], // Headers allow kiye
-}));
+// Preflight request (OPTIONS) को मैन्युअली हैंडल करें (यह सुनिश्चित करने के लिए कि CORS headers हमेशा भेजे जाएँ)
+// यह 'Access-Control-Allow-Origin' missing error को 204 status code के साथ हल कर सकता है
+app.options('*', cors(corsOptions)); 
 
 app.use(express.json());
 
-// ------------------- SOCKET.IO SETUP (Socket.io ke CORS ko bhi check karein) -------------------
+// ------------------- SOCKET.IO SETUP -------------------
 const io = new Server(server, {
     pingTimeout: 60000,
-    cors: {
-        origin: [process.env.CLIENT_URL, "http://localhost:5173", "http://localhost:3000"],
-        methods: ["GET", "POST"],
-        credentials: true,
-    },
+    cors: corsOptions // Socket.io के लिए भी उसी corsOptions का उपयोग करें
 });
 
 // Socket.io Connection Logic
 io.on('connection', (socket) => {
     console.log(`Socket Connected: ${socket.id}`);
 
-    // Jab client join hota hai, hum use uski Donation ID (room) mein daal denge
-    // room name hoga: `donation-id`
     socket.on('join_chat_room', (donationId) => {
         socket.join(donationId);
         console.log(`User joined room: ${donationId}`);
     });
 
-    // Jab koi naya message aata hai
     socket.on('new_message', (newMessage) => {
-        // Message ko uss room mein broadcast karo
         socket.to(newMessage.donation).emit('message_received', newMessage);
         console.log(`Message sent to room ${newMessage.donation}`);
     });
@@ -83,7 +96,7 @@ app.get('/', (req, res) => {
     });
 });
 
-// Server ko 'server' object se listen karwao, na ki 'app' se
+// Server को 'server' object से listen करवाओ
 server.listen(PORT, () => {
     console.log(`Server started successfully on port ${PORT}`);
 });
