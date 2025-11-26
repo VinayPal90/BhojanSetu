@@ -10,7 +10,7 @@ import connectDB from './config/db.js';
 import authRouter from './routes/authRoutes.js'; 
 import donationRoutes from './routes/donationRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
-import messageRoutes from './routes/messageRoutes.js'; // Ensure this import is included
+import messageRoutes from './routes/messageRoutes.js';
 
 dotenv.config();
 
@@ -18,73 +18,68 @@ const PORT = process.env.PORT || 8080;
 const app = express();
 const server = http.createServer(app);
 
-// --- FIX: CLIENT_URLS Array Define Kiya Gaya ---
-// Deployment environment variables Render se milenge, aur local fallback yahan hai
+// ----------------------- CLIENT URLS -----------------------
 const CLIENT_URLS = [
-    process.env.CLIENT_URL, 
-    "http://localhost:5173", 
+    process.env.CLIENT_URL,
+    "http://localhost:5173",
     "http://localhost:3000"
-].filter(Boolean); // Blank strings ko filter out kar dega
-// --------------------------------------------------
+].filter(Boolean);
 
-// Database Connection
-connectDB();
-
-// Middlewares
+// --------------------- MIDDLEWARES -------------------------
 app.use(helmet());
 
-// FIX: CORS configuration
+// **SUPER IMPORTANT FIX**
 app.use(cors({
-    origin: CLIENT_URLS, // <-- Ab CLIENT_URLS defined hai
+    origin: (origin, callback) => {
+        if (!origin || CLIENT_URLS.includes(origin)) {
+            return callback(null, true);
+        }
+        return callback(new Error("Not allowed by CORS: " + origin));
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], 
-    allowedHeaders: ['Content-Type', 'Authorization'], 
+    methods: ['GET','POST','PUT','PATCH','DELETE'],
+    allowedHeaders: ['Content-Type','Authorization'],
 }));
 
 app.use(express.json());
 
-// ------------------- SOCKET.IO SETUP -------------------
+// ------------------- SOCKET.IO ------------------------------
 const io = new Server(server, {
-    pingTimeout: 60000,
     cors: {
-        origin: CLIENT_URLS, // <-- Yahan bhi CLIENT_URLS use kiya
+        origin: CLIENT_URLS,
         methods: ["GET", "POST"],
         credentials: true,
     },
+    pingTimeout: 60000,
 });
 
-// Socket.io Connection Logic (Code remains the same)
 io.on('connection', (socket) => {
-    console.log(`Socket Connected: ${socket.id}`);
-    // ... (Socket logic remains the same)
+    console.log("Socket Connected:", socket.id);
+
     socket.on('join_chat_room', (donationId) => {
         socket.join(donationId);
-        console.log(`User joined room: ${donationId}`);
     });
+
     socket.on('new_message', (newMessage) => {
         socket.to(newMessage.donation).emit('message_received', newMessage);
-        console.log(`Message sent to room ${newMessage.donation}`);
     });
+
     socket.on('disconnect', () => {
-        console.log(`Socket Disconnected: ${socket.id}`);
+        console.log("Socket Disconnected:", socket.id);
     });
 });
 
+// ----------------------- ROUTES -----------------------------
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/donations', donationRoutes);
+app.use('/api/v1/contact', contactRoutes);
+app.use('/api/v1/messages', messageRoutes);
 
-// ------------------- API ROUTES -------------------
-app.use('/api/v1/auth', authRouter); 
-app.use('/api/v1/donations', donationRoutes); 
-app.use('/api/v1/contact', contactRoutes); 
-app.use('/api/v1/messages', messageRoutes); 
-
-// Test Route
 app.get('/', (req, res) => {
-    res.status(200).json({
-        message: `BhojanSetu Backend is Running Smoothly on Port ${PORT}`,
-        environment: process.env.NODE_ENV
-    });
+    res.json({ message: "Backend Running Successfully", env: process.env.NODE_ENV });
 });
 
+// ------------------------ SERVER -----------------------------
 server.listen(PORT, () => {
-    console.log(`Server started successfully on port ${PORT}`);
+    console.log(`Server started on port ${PORT}`);
 });
