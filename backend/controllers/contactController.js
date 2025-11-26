@@ -3,6 +3,9 @@
 import nodemailer from 'nodemailer';
 
 // Nodemailer transporter setup - Optimized for Cloud Deployment (Port 587 is preferred for TLS)
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY); 
+
 const transporter = nodemailer.createTransport({
     // FIX: SendGrid SMTP Host और Auth अपडेट किया गया
     host: 'smtp.sendgrid.net', // SendGrid SMTP Server
