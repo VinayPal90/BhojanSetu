@@ -26,12 +26,17 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 //     debug: true
 // });
 
+const { email } = req.body;  // agar frontend se email aata hai
+// ya
+const email = req.user.email;  // agar user login hai to
+
 await sgMail.send({
-  to: user.email,                 // jisko OTP bhejna hai
-  from: process.env.EMAIL_USER,   // SendGrid me verified sender
+  to: email,  // yaha pr sahi email use karo
+  from: process.env.EMAIL_USER,
   subject: 'BhojanSetu OTP Verification',
   html: `<p>Your OTP is <strong>${otp}</strong>. It is valid for 10 minutes.</p>`
 });
+
 
 
 // Helper function to generate and send OTP
