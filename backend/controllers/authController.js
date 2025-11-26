@@ -6,6 +6,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer'; 
 
+sgMail.setApiKey(process.env.SENDGRID_API_KEY); 
+
 // Nodemailer setup (Using SendGrid SMTP via API Key)
 const transporter = nodemailer.createTransport({
     // FIX: SendGrid SMTP Host और Auth अपडेट किया गया
