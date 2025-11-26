@@ -24,7 +24,7 @@ connectDB();
 // Middlewares
 app.use(helmet());
 // FIX: CORS ko Socket.io ke liye bhi set karna padega
-const CLIENT_URLS = ["http://localhost:5173", "http://localhost:3000"];
+const CLIENT_URLS = ["http://localhost:5173", "https://bhojansetu-3ncs.onrender.com"];
 app.use(cors({
     origin: CLIENT_URLS,
     credentials: true,
