@@ -1,9 +1,9 @@
-// backend/server.js (Updated Code with Robust CORS Configuration)
+// backend/server.js (Optimized CORS Configuration)
 
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import helmet from 'helmet';
+import helmet from 'helmet'; // Security Headers
 import { Server } from 'socket.io'; 
 import http from 'http'; 
 import connectDB from './config/db.js';
@@ -16,7 +16,7 @@ dotenv.config();
 
 const PORT = process.env.PORT || 8080;
 const app = express();
-const server = http.createServer(app); // HTTP Server create kiya
+const server = http.createServer(app);
 
 // Database Connection
 connectDB();
@@ -29,40 +29,41 @@ const allowedOrigins = [
 ];
 
 const corsOptions = {
-    // Dynamic origin checking
     origin: (origin, callback) => {
-        // अगर origin allowedOrigins में है, या कोई origin नहीं है (जैसे same-origin requests/Postman), तो अनुमति दें
+        // अगर origin allowed है या यह same origin request है (origin undefined)
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            // console.log(`Blocked CORS request from origin: ${origin}`); // Debugging के लिए
-            callback(new Error('Not allowed by CORS'), false);
+            callback(new Error(`Not allowed by CORS for origin: ${origin}`));
         }
     },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    // Preflight requests के लिए status code 204 की जगह 200 सेट करें (कुछ environments में 204 से समस्या आती है)
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    allowedHeaders: 'Content-Type,Authorization',
+    // Preflight (OPTIONS) रिक्वेस्ट के लिए status code को 204 की जगह 200 पर सेट करें
     optionsSuccessStatus: 200 
 };
 
 // Middlewares
-app.use(helmet());
-app.use(cors(corsOptions)); // CORS Middleware apply किया
+app.use(helmet()); 
 
-// Preflight request (OPTIONS) को मैन्युअली हैंडल करें (यह सुनिश्चित करने के लिए कि CORS headers हमेशा भेजे जाएँ)
-// यह 'Access-Control-Allow-Origin' missing error को 204 status code के साथ हल कर सकता है
+// CORS Middleware apply किया
+app.use(cors(corsOptions)); 
+
+// यह सुनिश्चित करने के लिए कि सभी routes के लिए OPTIONS request सही ढंग से handled हो
+// यह अक्सर 'Access-Control-Allow-Origin' missing error को 204 status code के साथ हल करता है।
 app.options('*', cors(corsOptions)); 
 
-app.use(express.json());
+
+app.use(express.json()); // JSON data को parse करने के लिए
 
 // ------------------- SOCKET.IO SETUP -------------------
 const io = new Server(server, {
     pingTimeout: 60000,
-    cors: corsOptions // Socket.io के लिए भी उसी corsOptions का उपयोग करें
+    cors: corsOptions // Express और Socket.io के लिए एक ही config का उपयोग करें
 });
 
-// Socket.io Connection Logic
+// ... (Socket.io Connection Logic remains the same)
 io.on('connection', (socket) => {
     console.log(`Socket Connected: ${socket.id}`);
 
@@ -96,7 +97,7 @@ app.get('/', (req, res) => {
     });
 });
 
-// Server को 'server' object से listen करवाओ
+// Server Listen
 server.listen(PORT, () => {
     console.log(`Server started successfully on port ${PORT}`);
 });
