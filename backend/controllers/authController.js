@@ -7,12 +7,24 @@ import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 
 // Nodemailer setup (Contact API se reuse kiya gaya)
+// const transporter = nodemailer.createTransport({
+//     service: 'gmail',
+//     auth: {
+//         user: process.env.EMAIL_USER,
+//         pass: process.env.EMAIL_PASS
+//     }
+// });
+
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    // FIX: 'service: gmail' ko explicit host aur secure: true se badla
+    host: 'smtp.gmail.com',
+    port: 465, // Secure port
+    secure: true, // Use SSL/TLS
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
-    }
+    },
+    timeout: 20000, 
 });
 
 // Helper function to generate and send OTP
